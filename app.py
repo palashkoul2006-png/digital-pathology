@@ -290,6 +290,13 @@ def get_history(patient_id):
         logger.error(f"History fetch error: {e}")
         return jsonify({'error': str(e)}), 500
 
+# ── Acoustic Stethoscope ──────────────────────────────────────────────────────
+@app.route('/acoustic')
+def acoustic():
+    """Serve the Cough-to-Clinic Acoustic Virtual Stethoscope page."""
+    return render_template('acoustic.html')
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

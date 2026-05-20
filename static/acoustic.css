@@ -1,0 +1,365 @@
+/* ============================================================
+   acoustic.css — Cough-to-Clinic Acoustic Virtual Stethoscope
+   Extends the PathAI glassmorphism design system
+   ============================================================ */
+
+/* ── Import shared font stack (same as main app) ──────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+/* ── Design tokens (mirror main style.css) ───────────────────────────────── */
+:root {
+  --glass          : rgba(255,255,255,0.04);
+  --glass-hover    : rgba(255,255,255,0.07);
+  --glass-border   : rgba(255,255,255,0.10);
+  --ice            : #c4e0ff;
+  --white          : #ffffff;
+  --muted          : rgba(196,224,255,0.55);
+  --radius-lg      : 20px;
+  --radius-md      : 12px;
+  --radius-sm      : 8px;
+  --font-display   : 'Syne', sans-serif;
+  --font-body      : 'DM Sans', sans-serif;
+
+  /* Acoustic-specific */
+  --clr-normal     : #00d4aa;
+  --clr-asthma     : #f59e0b;
+  --clr-pneumonia  : #f97316;
+  --clr-tb         : #ef4444;
+  --clr-mic        : #6366f1;
+  --clr-mic-glow   : rgba(99,102,241,0.45);
+  --clr-warning    : #fbbf24;
+}
+
+/* ── Global reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family     : var(--font-body);
+  background      : #03060d;
+  color           : var(--white);
+  min-height      : 100vh;
+  overflow-x      : hidden;
+}
+
+/* ── Animated background (aurora) ─────────────────────────────────────────── */
+.aurora-bg {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden;
+  pointer-events: none;
+}
+.aurora-bg::before,
+.aurora-bg::after {
+  content: ''; position: absolute; border-radius: 50%;
+  filter: blur(100px); opacity: 0.18;
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.aurora-bg::before {
+  width: 70vw; height: 70vw;
+  background: radial-gradient(circle, #6366f1 0%, #3b82f6 50%, transparent 70%);
+  top: -20%; left: -20%;
+}
+.aurora-bg::after {
+  width: 60vw; height: 60vw;
+  background: radial-gradient(circle, #0ea5e9 0%, #00d4aa 50%, transparent 70%);
+  bottom: -15%; right: -10%;
+  animation-delay: -9s;
+}
+@keyframes drift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(6%,4%) scale(1.08); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.site-header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(3,6,13,0.75);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+}
+.header-inner {
+  max-width: 1400px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.85rem 2rem;
+}
+.logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.logo-icon { font-size: 1.5rem; }
+.logo-text {
+  font-family: var(--font-display); font-size: 1.3rem; font-weight: 700;
+  color: var(--white); letter-spacing: -0.02em;
+}
+.header-nav { display: flex; align-items: center; gap: 1rem; }
+.nav-badge {
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
+  color: #a5b4fc; padding: 0.25rem 0.6rem; border-radius: 999px;
+}
+.nav-back {
+  font-size: 0.85rem; color: var(--muted); text-decoration: none;
+  transition: color .2s;
+}
+.nav-back:hover { color: var(--ice); }
+
+/* ── Page layout ─────────────────────────────────────────────────────────── */
+.acoustic-page {
+  position: relative; z-index: 1;
+  max-width: 1300px; margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+
+.page-hero {
+  text-align: center; margin-bottom: 2.5rem;
+}
+.page-hero h1 {
+  font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 800; letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #c4e0ff 0%, #a5b4fc 50%, #00d4aa 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.page-hero p {
+  color: var(--muted); font-size: 1.05rem; margin-top: 0.6rem;
+}
+.hero-badges { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+.hero-badge {
+  font-size: 0.75rem; font-weight: 500; padding: 0.3rem 0.75rem;
+  border-radius: 999px; border: 1px solid; letter-spacing: 0.02em;
+}
+.hero-badge.privacy  { background: rgba(0,212,170,0.1); border-color: rgba(0,212,170,0.35); color: #00d4aa; }
+.hero-badge.local    { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.35); color: #a5b4fc; }
+.hero-badge.edge     { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.35); color: #fbbf24; }
+
+/* ── Two-column grid ──────────────────────────────────────────────────────── */
+.acoustic-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 860px) { .acoustic-grid { grid-template-columns: 1fr; } }
+
+/* ── Glass panel ─────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  backdrop-filter: blur(16px);
+}
+.panel-header h2 {
+  font-family: var(--font-display); font-size: 1.15rem; font-weight: 700;
+}
+.panel-header p { color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }
+
+/* ── Record button ───────────────────────────────────────────────────────── */
+.record-center {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1.5rem; padding: 2rem 0;
+}
+
+.mic-ring {
+  position: relative; width: 140px; height: 140px;
+}
+.mic-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.mic-btn {
+  position: absolute; inset: 12px;
+  border-radius: 50%; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  box-shadow: 0 0 30px var(--clr-mic-glow), 0 4px 20px rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem;
+  transition: transform .15s, box-shadow .15s;
+}
+.mic-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 48px var(--clr-mic-glow), 0 4px 24px rgba(0,0,0,0.5);
+}
+.mic-btn:active { transform: scale(0.97); }
+
+/* Idle */
+.mic-ring circle.ring-idle {
+  fill: none; stroke: rgba(99,102,241,0.25); stroke-width: 2;
+}
+
+/* Rotating SVG arc for recording */
+.mic-ring svg.recording-ring {
+  animation: spin-ring 2s linear infinite;
+}
+@keyframes spin-ring {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.mic-ring circle.ring-rec {
+  fill: none; stroke: #ef4444; stroke-width: 3;
+  stroke-dasharray: 300; stroke-dashoffset: 80;
+  stroke-linecap: round;
+}
+
+/* Pulse animation during recording */
+.mic-btn.recording {
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
+  box-shadow: 0 0 48px rgba(239,68,68,0.55), 0 4px 20px rgba(0,0,0,0.4);
+  animation: pulse-rec 1.2s ease-in-out infinite;
+}
+@keyframes pulse-rec {
+  0%,100% { transform: scale(1); box-shadow: 0 0 48px rgba(239,68,68,0.55); }
+  50%      { transform: scale(1.05); box-shadow: 0 0 64px rgba(239,68,68,0.8); }
+}
+
+/* Processing */
+.mic-btn.processing {
+  background: linear-gradient(135deg, #0e7490, #0ea5e9);
+  animation: pulse-proc 1s ease-in-out infinite;
+}
+@keyframes pulse-proc {
+  0%,100% { box-shadow: 0 0 30px rgba(14,165,233,0.4); }
+  50%      { box-shadow: 0 0 50px rgba(14,165,233,0.7); }
+}
+
+.record-label {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 600;
+  color: var(--muted); text-align: center; line-height: 1.4;
+}
+.record-label strong { color: var(--white); display: block; font-size: 1.1rem; }
+
+/* ── Timer ───────────────────────────────────────────────────────────────── */
+.record-timer {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: #ef4444; letter-spacing: 0.05em;
+  display: none;
+}
+.record-timer.visible { display: block; }
+
+/* ── Waveform canvas ─────────────────────────────────────────────────────── */
+.waveform-wrap {
+  width: 100%; height: 80px;
+  background: rgba(0,0,0,0.3); border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border); overflow: hidden;
+}
+#waveform-canvas { width: 100%; height: 100%; display: block; }
+
+/* ── Tips list ───────────────────────────────────────────────────────────── */
+.tips-list {
+  list-style: none; display: flex; flex-direction: column; gap: 0.55rem;
+  margin-top: 1.25rem;
+}
+.tips-list li {
+  font-size: 0.82rem; color: var(--muted);
+  display: flex; align-items: flex-start; gap: 0.5rem;
+}
+.tips-list li span.tip-icon { font-size: 0.95rem; flex-shrink: 0; }
+
+/* ── Results panel states ────────────────────────────────────────────────── */
+.idle-state {
+  text-align: center; padding: 3rem 1rem; color: var(--muted);
+}
+.idle-state .idle-icon { font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.5; }
+
+.loading-state {
+  text-align: center; padding: 2.5rem 1rem;
+  display: none;
+}
+.loading-state.visible { display: block; }
+
+.spinner-large {
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 4px solid rgba(99,102,241,0.2);
+  border-top-color: #6366f1;
+  animation: spin 0.9s linear infinite;
+  margin: 0 auto 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-state p { color: var(--ice); font-weight: 500; }
+.loading-state small { color: var(--muted); font-size: 0.82rem; }
+
+/* ── Results content ─────────────────────────────────────────────────────── */
+.results-content { display: none; }
+.results-content.visible { display: block; }
+
+/* ── Diagnosis badge ─────────────────────────────────────────────────────── */
+.diagnosis-card {
+  background: rgba(0,0,0,0.2); border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border); padding: 1.25rem;
+  margin-bottom: 1rem; display: flex; align-items: center; gap: 1.25rem;
+}
+.diagnosis-icon { font-size: 2.5rem; flex-shrink: 0; }
+.diagnosis-name {
+  font-family: var(--font-display); font-size: 1.5rem; font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.diagnosis-conf { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+.risk-pill {
+  margin-left: auto; padding: 0.35rem 0.85rem;
+  border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+  border: 1px solid; white-space: nowrap;
+}
+.risk-pill.low      { background:rgba(0,212,170,0.15); border-color:rgba(0,212,170,0.4); color:#00d4aa; }
+.risk-pill.medium   { background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.4); color:#f59e0b; }
+.risk-pill.high     { background:rgba(239,68,68,0.15);  border-color:rgba(239,68,68,0.4);  color:#ef4444; }
+
+/* ── Probability bars ────────────────────────────────────────────────────── */
+.prob-section { margin-bottom: 1rem; }
+.prob-section-label {
+  font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.75rem;
+}
+
+.prob-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+.prob-label {
+  width: 90px; font-size: 0.82rem; font-weight: 500; flex-shrink: 0;
+}
+.prob-bar-track {
+  flex: 1; height: 10px; border-radius: 999px;
+  background: rgba(255,255,255,0.07);
+}
+.prob-bar-fill {
+  height: 100%; border-radius: 999px;
+  transition: width 0.9s cubic-bezier(0.34,1.56,0.64,1);
+  width: 0%;
+}
+.prob-bar-fill.normal    { background: linear-gradient(90deg, #00d4aa, #34d399); }
+.prob-bar-fill.asthma    { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.prob-bar-fill.pneumonia { background: linear-gradient(90deg, #f97316, #fb923c); }
+.prob-bar-fill.tb        { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+.prob-pct {
+  width: 42px; text-align: right; font-size: 0.82rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Subclinical warning ─────────────────────────────────────────────────── */
+.subclinical-warning {
+  background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.3);
+  border-radius: var(--radius-md); padding: 1rem 1.1rem;
+  margin-bottom: 1rem; display: none;
+}
+.subclinical-warning.visible { display: flex; gap: 0.75rem; align-items: flex-start; }
+.warning-icon { font-size: 1.3rem; flex-shrink: 0; }
+.warning-body h4 { color: var(--clr-warning); font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+.warning-body p  { color: rgba(251,191,36,0.75); font-size: 0.8rem; line-height: 1.5; }
+
+/* ── Disclaimer strip ────────────────────────────────────────────────────── */
+.disclaimer-strip {
+  font-size: 0.75rem; color: var(--muted); line-height: 1.5;
+  border-top: 1px solid var(--glass-border); padding-top: 0.9rem; margin-top: 1rem;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.divider {
+  border: none; border-top: 1px solid var(--glass-border);
+  margin: 1.25rem 0;
+}
+
+/* ── Utility ─────────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.site-footer {
+  text-align: center; padding: 1.5rem; font-size: 0.8rem;
+  color: var(--muted); border-top: 1px solid var(--glass-border);
+  position: relative; z-index: 1;
+}

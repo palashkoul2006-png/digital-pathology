@@ -8,5 +8,10 @@ transformers>=4.35.0
 torch>=2.0.0
 # Load environment variables from .env file
 python-dotenv>=1.0.0
+# ── Acoustic Stethoscope module ───────────────────────────────────────────────
+librosa>=0.10.0          # MFCC extraction from audio files
+soundfile>=0.12.0        # Audio file I/O backend for librosa
+tensorflow>=2.13.0       # CNN training and TFLite export
+tensorflowjs>=4.10.0     # Convert model to TF.js for browser inference
 # TensorFlow is optional — app runs in demo mode without it
 # tensorflow>=2.13.0

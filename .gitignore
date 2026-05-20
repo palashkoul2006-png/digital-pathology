@@ -33,6 +33,12 @@ skin_cancer_vit/
 *.pth
 *.ckpt
 *.h5
+*.tflite
+
+# === Acoustic module — training data & model weights ===
+acoustic/data/
+acoustic/saved_model/
+# Note: static/acoustic_model/ IS committed (TF.js web model is small & needed)
 
 # === Raw Dataset Images ===
 raw_melanoma_selection/

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PathAI — Acoustic Virtual Stethoscope</title>
+  <meta name="description" content="AI-powered cough analysis tool that classifies TB, Asthma, Pneumonia, and Normal states entirely on-device using edge AI. No audio sent to any server." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫁</text></svg>" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='acoustic.css') }}" />
+  <!-- TensorFlow.js — loads model and runs inference locally in browser -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════  AURORA BACKGROUND  ══════════════════════ -->
+<div class="aurora-bg"></div>
+
+<!-- ═══════════════════  HEADER  ════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">Path<strong>AI</strong></span>
+    </a>
+    <nav class="header-nav">
+      <span class="nav-badge">🫁 Acoustic Module</span>
+      <a href="/" class="nav-back">← Back to Pathology</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════════════  MAIN  ══════════════════════════════════ -->
+<main class="acoustic-page">
+
+  <!-- Hero -->
+  <div class="page-hero">
+    <h1>Cough-to-Clinic Acoustic Virtual Stethoscope</h1>
+    <p>CNN analysis of cough spectral patterns — identifies TB, Asthma, Pneumonia &amp; subclinical micro-patterns</p>
+    <div class="hero-badges">
+      <span class="hero-badge privacy">🔒 Zero Audio Upload</span>
+      <span class="hero-badge local">⚡ Runs 100% Locally</span>
+      <span class="hero-badge edge">🧠 Edge AI · TF.js</span>
+    </div>
+    <p id="model-status" style="margin-top:0.75rem;font-size:0.82rem;font-weight:500;">⏳ Loading AI model…</p>
+  </div>
+
+  <!-- Two-column grid -->
+  <div class="acoustic-grid">
+
+    <!-- ───────────  LEFT PANEL — Record  ─────────── -->
+    <section class="panel" id="record-panel">
+      <div class="panel-header">
+        <h2>🎙️ Audio Input</h2>
+        <p>Record a 5-second cough sample for real-time analysis</p>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Mic button + ring -->
+      <div class="record-center">
+
+        <div class="mic-ring" id="mic-ring">
+          <!-- Idle ring -->
+          <svg viewBox="0 0 140 140" id="idle-ring">
+            <circle class="ring-idle" cx="70" cy="70" r="64" />
+          </svg>
+          <!-- Recording ring (shown only during recording) -->
+          <svg viewBox="0 0 140 140" class="recording-ring" id="recording-ring" style="display:none;">
+            <circle class="ring-rec" cx="70" cy="70" r="64" />
+          </svg>
+
+          <button class="mic-btn" id="mic-btn" disabled title="Record cough sample">
+            <span id="mic-icon">🎙️</span>
+          </button>
+        </div>
+
+        <!-- Timer -->
+        <div class="record-timer" id="record-timer">00:00</div>
+
+        <div class="record-label" id="record-label">
+          <strong>Record Your Cough</strong>
+          Click to start a 5-second recording
+        </div>
+
+      </div>
+
+      <!-- Waveform -->
+      <div class="waveform-wrap">
+        <canvas id="waveform-canvas"></canvas>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Tips -->
+      <ul class="tips-list">
+        <li><span class="tip-icon">📍</span> Hold device 15–20 cm from your mouth</li>
+        <li><span class="tip-icon">🤫</span> Record in a quiet environment</li>
+        <li><span class="tip-icon">💨</span> Cough naturally — do not force it</li>
+        <li><span class="tip-icon">🔄</span> You can re-record as many times as needed</li>
+        <li><span class="tip-icon">🔒</span> Audio is processed locally — never uploaded</li>
+      </ul>
+    </section>
+
+    <!-- ───────────  RIGHT PANEL — Results  ─────────── -->
+    <section class="panel" id="results-panel">
+      <div class="panel-header">
+        <h2>📊 Analysis Results</h2>
+        <p>Edge-AI acoustic classification report</p>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Idle state -->
+      <div id="idle-state">
+        <div class="idle-state">
+          <div class="idle-icon">🫁</div>
+          <p>Record a cough sample to begin analysis</p>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="loading-state" style="display:none;">
+        <div class="loading-state visible">
+          <div class="spinner-large"></div>
+          <p>Extracting spectral features…</p>
+          <small>Running MFCC → CNN inference locally</small>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results-content" style="display:none;">
+
+        <!-- Diagnosis card -->
+        <div class="diagnosis-card">
+          <span class="diagnosis-icon" id="diagnosis-icon">✅</span>
+          <div>
+            <div class="diagnosis-name" id="diagnosis-name">Normal</div>
+            <div class="diagnosis-conf" id="diagnosis-conf">Confidence: —</div>
+          </div>
+          <span class="risk-pill low" id="risk-pill">Low Risk</span>
+        </div>
+
+        <!-- Subclinical micro-pattern warning -->
+        <div class="subclinical-warning" id="subclinical-warning">
+          <span class="warning-icon">⚠️</span>
+          <div class="warning-body">
+            <h4>Subclinical Micro-Pattern Detected</h4>
+            <p>
+              The model confidence is below 60%. Spectral micro-patterns
+              were detected that are not clearly classifiable by human ear.
+              Consider a follow-up clinical evaluation.
+            </p>
+          </div>
+        </div>
+
+        <!-- Probability distribution -->
+        <div class="prob-section">
+          <div class="prob-section-label">Class Probabilities</div>
+
+          <div class="prob-row">
+            <span class="prob-label">Normal</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill normal" id="bar-normal"></div>
+            </div>
+            <span class="prob-pct" id="pct-normal">—</span>
+          </div>
+
+          <div class="prob-row">
+            <span class="prob-label">Asthma</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill asthma" id="bar-asthma"></div>
+            </div>
+            <span class="prob-pct" id="pct-asthma">—</span>
+          </div>
+
+          <div class="prob-row">
+            <span class="prob-label">Pneumonia</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill pneumonia" id="bar-pneumonia"></div>
+            </div>
+            <span class="prob-pct" id="pct-pneumonia">—</span>
+          </div>
+
+          <div class="prob-row">
+            <span class="prob-label">TB</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill tb" id="bar-tb"></div>
+            </div>
+            <span class="prob-pct" id="pct-tb">—</span>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Disclaimer -->
+        <p class="disclaimer-strip">
+          ⚠️ <strong>Research tool only.</strong> This AI model was trained on synthetic data
+          and is not validated for clinical use. Always consult a qualified medical
+          professional. Do not use for medical decision-making.
+        </p>
+
+      </div><!-- /results-content -->
+
+    </section>
+
+  </div><!-- /acoustic-grid -->
+
+</main>
+
+<!-- ═══════════════════  FOOTER  ════════════════════════════════ -->
+<footer class="site-footer">
+  <p>PathAI Acoustic Module — Edge AI runs entirely in your browser · No data leaves your device ·
+    <strong>For research &amp; educational use only.</strong></p>
+</footer>
+
+<script src="{{ url_for('static', filename='acoustic.js') }}"></script>
+</body>
+</html>
