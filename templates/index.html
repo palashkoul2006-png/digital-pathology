@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PathAI — Digital Pathology Analysis</title>
+
+  <!-- Google Fonts: Syne (display) + DM Sans (body) -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <!-- Inline SVG favicon — eliminates the 404, no file needed -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%AC%A1</text></svg>" />
+</head>
+<body>
+
+<!-- ═══════════════════════════  VIDEO BG  ═══════════════════════════ -->
+<div class="video-wrapper">
+  <video autoplay loop muted playsinline class="bg-media">
+    <source src="{{ url_for('static', filename='background.mp4') }}" type="video/mp4" />
+  </video>
+  <div class="video-overlay"></div>
+</div>
+
+<!-- ═══════════════════════════  HEADER  ═══════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">Path<strong>AI</strong></span>
+    </div>
+    <nav class="header-nav">
+      <span class="nav-badge">Beta&nbsp;v1.0</span>
+      <span class="nav-divider">|</span>
+      <span class="nav-item">Digital Pathology Suite</span>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════════════════════  MAIN LAYOUT  ═══════════════════════════ -->
+<main class="main-grid">
+
+  <!-- ───────────  LEFT PANEL – Upload / Camera  ─────────── -->
+  <section class="panel upload-panel" id="upload-panel">
+    <div class="panel-header">
+      <h2>Image Input</h2>
+      <p class="panel-sub">Upload a clinical or pathology image for AI analysis</p>
+    </div>
+
+    <!-- Tab switcher -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="upload">📁 File Upload</button>
+      <button class="tab-btn" data-tab="camera">📷 Camera</button>
+    </div>
+
+    <!-- File upload tab -->
+    <div class="tab-content" id="tab-upload">
+      <label class="drop-zone" id="drop-zone">
+        <div class="drop-icon">🩻</div>
+        <p class="drop-title">Drag &amp; drop or click to browse</p>
+        <p class="drop-sub">PNG, JPG, JPEG, BMP, TIFF — max 16 MB</p>
+        <input type="file" id="file-input" accept="image/*" hidden />
+      </label>
+    </div>
+
+    <!-- Camera tab -->
+    <div class="tab-content hidden" id="tab-camera">
+      <div class="camera-wrapper">
+        <video id="camera-feed" autoplay playsinline></video>
+        <div class="camera-overlay-ring"></div>
+      </div>
+      <div class="camera-controls">
+        <button class="btn btn-ghost" id="btn-start-camera">Start Camera</button>
+        <button class="btn btn-primary" id="btn-capture" disabled>Capture</button>
+      </div>
+      <canvas id="capture-canvas" hidden></canvas>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-wrap hidden" id="preview-wrap">
+      <div class="preview-label">Preview</div>
+      <img id="preview-img" src="" alt="Preview" />
+
+      <div style="margin-top: 1rem; margin-bottom: 1.25rem;">
+        <label for="patient-id-input" class="preview-label" style="display: block;">Patient ID Tracker</label>
+        <input type="text" id="patient-id-input" placeholder="e.g., PAT-1042 (Optional)" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: var(--white); font-family: var(--font-body); font-size: 0.85rem; outline: none; transition: border-color 0.3s;" onfocus="this.style.borderColor='var(--ice)'" onblur="this.style.borderColor='var(--glass-border)'" />
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-analyze">
+        <span class="btn-text">Analyse Image</span>
+        <span class="btn-loader hidden"></span>
+      </button>
+    </div>
+
+    <!-- Image type badges -->
+    <div class="type-badges">
+      <span class="badge">🔬 Pathology</span>
+      <span class="badge">👁 Ophthalmology</span>
+      <span class="badge">🩹 Dermatology</span>
+      <span class="badge">🦻 ENT</span>
+      <span class="badge">💇 Trichology</span>
+    </div>
+  </section>
+
+  <!-- ───────────  RIGHT PANEL – Results  ─────────── -->
+  <section class="panel results-panel" id="results-panel">
+    <div class="panel-header">
+      <h2>Analysis Results</h2>
+      <p class="panel-sub">AI-powered clinical screening report</p>
+    </div>
+
+    <!-- Idle state -->
+    <div class="idle-state" id="idle-state">
+      <div class="idle-icon">🧬</div>
+      <p>Upload or capture an image to begin analysis</p>
+    </div>
+
+    <!-- Loading state -->
+    <div class="loading-state hidden" id="loading-state">
+      <div class="spinner"></div>
+      <p>Analysing image…</p>
+      <small>Running inference &amp; generating heatmap</small>
+    </div>
+
+    <!-- Results -->
+    <div class="results-content hidden" id="results-content">
+
+      <!-- Prediction card -->
+      <div class="result-card" id="pred-card">
+        <div class="result-row">
+          <div class="result-label">Diagnosis</div>
+          <div>
+            <div class="result-value pred-value" id="pred-text">—</div>
+            <span class="category-tag" id="category-tag"></span>
+          </div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Confidence</div>
+          <div class="confidence-bar-wrap">
+            <div class="confidence-bar" id="confidence-bar"></div>
+          </div>
+          <div class="result-value" id="conf-text">—</div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Risk Level</div>
+          <div class="risk-badge" id="risk-badge">—</div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Model</div>
+          <div class="result-value model-tag" id="model-tag">—</div>
+        </div>
+      </div>
+
+      <!-- Class probability distribution -->
+      <div class="result-card prob-card">
+        <div class="prob-card-header">
+          <span>Class Probabilities</span>
+          <span class="heatmap-hint">All 7 skin lesion types</span>
+        </div>
+        <div id="prob-bars" class="prob-bars"></div>
+      </div>
+
+      <!-- Heatmap card -->
+      <div class="result-card heatmap-card">
+        <div class="heatmap-header">
+          <span>Saliency Heatmap</span>
+          <span class="heatmap-hint">Visual attention overlay</span>
+        </div>
+        <div class="heatmap-imgs">
+          <div class="heatmap-col">
+            <img id="original-img" src="" alt="Original" />
+            <span class="img-label">Original</span>
+          </div>
+          <div class="heatmap-col">
+            <img id="heatmap-img" src="" alt="Heatmap" />
+            <span class="img-label">Saliency Map</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card progression-card" id="progression-card">
+        <div class="heatmap-header">
+          <span>Disease Progression Simulator</span>
+          <span class="badge" style="background: rgba(138,43,226,0.2); border-color: #8a2be2; color: #d8b4fe;">Generative AI</span>
+        </div>
+        <p class="panel-sub" style="margin-bottom: 1rem; color: rgba(196,224,255,0.7);">Use Stable Diffusion to simulate how a malignant melanoma might develop on this specific skin structure.</p>
+        
+        <button class="btn btn-primary btn-full" id="btn-simulate" style="background: linear-gradient(135deg, #6b21a8, #9333ea); box-shadow: 0 4px 20px rgba(147, 51, 234, 0.4);">
+          <span class="btn-text" id="btn-sim-text">Simulate Progression</span>
+          <span class="btn-loader hidden" id="btn-sim-loader"></span>
+        </button>
+
+        <div id="simulated-result-wrap" class="hidden" style="margin-top: 1rem; text-align: center;">
+          <img id="simulated-img" src="" alt="Simulated Progression" style="width: 100%; border-radius: 8px; border: 1px solid var(--glass-border); margin-bottom: 0.5rem;" />
+          <span class="img-label" style="color: #d8b4fe;">Synthetic Overlay (p4th4i)</span>
+        </div>
+      </div>
+
+      <!-- Recommendation card -->
+      <div class="result-card rec-card" id="rec-card">
+        <h3>Clinical Recommendation</h3>
+        <p class="rec-summary" id="rec-summary">—</p>
+        <ol class="rec-steps" id="rec-steps"></ol>
+        <a class="maps-btn" id="maps-link" href="#" target="_blank" rel="noopener">
+          📍 Find Diagnostic Centres Near Me
+        </a>
+        <p class="disclaimer" id="rec-disclaimer">—</p>
+      </div>
+
+      <div class="result-card chat-card" id="chat-card" style="margin-top: 1rem;">
+        <div class="heatmap-header">
+          <span>Medical AI Assistant</span>
+          <span class="badge" style="background: rgba(0,212,170,0.15); border-color: #00d4aa; color: #00d4aa;">Ask a Question</span>
+        </div>
+
+        <div id="chat-window" style="height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+          <div style="background: rgba(45,125,210,0.2); padding: 8px 12px; border-radius: 8px; align-self: flex-start; max-width: 85%; color: #c5e8fb;">
+            Hello! I'm your AI assistant. Do you have any questions about your diagnosis or care plan?
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="chat-input" placeholder="Type your question here..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; outline: none; font-family: inherit;" />
+          <button id="btn-send-chat" class="btn btn-primary" style="padding: 8px 16px;">Send</button>
+        </div>
+      </div>
+
+      <button id="btn-view-history" class="btn btn-ghost btn-full hidden" style="margin-top: 1rem;">
+        🕒 Load Patient History
+      </button>
+
+      <div class="result-card history-card hidden" id="history-card" style="margin-top: 1rem;">
+        <div class="heatmap-header">
+          <span>Longitudinal Timeline</span>
+          <span class="badge" style="background: rgba(45,125,210,0.2); border-color: #2d7dd2; color: #c5e8fb;">MongoDB</span>
+        </div>
+        
+        <div id="history-timeline" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+        </div>
+      </div>
+
+    </div><!-- /results-content -->
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════  FOOTER  ═══════════════════════════ -->
+<footer class="site-footer">
+  <p>PathAI — AI-Assisted Medical Screening &nbsp;·&nbsp;
+     <strong>For research &amp; educational use only.</strong>
+     Not a substitute for professional medical diagnosis.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<div id="disclaimer-modal" class="modal-overlay">
+  <div class="modal-content panel">
+    <div class="modal-header">
+      <span class="modal-icon">⚠️</span>
+      <h2>Clinical Disclaimer</h2>
+    </div>
+    <div class="modal-body">
+      <p><strong>PathAI is a research prototype intended for educational purposes only.</strong></p>
+      <ul>
+        <li>This software does <strong>not</strong> provide medical diagnoses.</li>
+        <li>AI results can be inaccurate and are highly dependent on image quality.</li>
+        <li>Always consult a certified medical professional for any skin concerns.</li>
+        <li>By clicking "I Understand," you acknowledge that this is not a medical device.</li>
+      </ul>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-accept-disclaimer" class="btn btn-primary btn-full">I Understand & Agree</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

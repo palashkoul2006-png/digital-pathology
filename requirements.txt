@@ -1,0 +1,12 @@
+flask>=2.3.0
+werkzeug>=2.3.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=9.0.0
+# HuggingFace Transformers + PyTorch (already installed from finetune step)
+transformers>=4.35.0
+torch>=2.0.0
+# Load environment variables from .env file
+python-dotenv>=1.0.0
+# TensorFlow is optional — app runs in demo mode without it
+# tensorflow>=2.13.0
