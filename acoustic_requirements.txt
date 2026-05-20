@@ -1,0 +1,25 @@
+# acoustic_requirements.txt
+# ─────────────────────────────────────────────────────────────────────────────
+# Use this file in a SEPARATE virtual environment (venv_acoustic) for
+# one-time model training and TF.js export ONLY.
+# The Flask app itself does NOT need these packages — inference runs
+# 100% client-side via TensorFlow.js in the browser.
+#
+# Setup:
+#   python -m venv venv_acoustic
+#   venv_acoustic\Scripts\activate
+#   pip install -r acoustic_requirements.txt
+#
+# Then run:
+#   python acoustic/train.py
+#   python acoustic/export_model.py
+# ─────────────────────────────────────────────────────────────────────────────
+
+numpy>=1.24.0
+librosa>=0.10.0
+soundfile>=0.12.0
+tensorflow==2.13.0
+tensorflowjs==4.10.0
+importlib_resources>=5.9.0
+tf-keras
+tensorflow-hub

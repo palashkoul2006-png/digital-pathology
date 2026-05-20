@@ -22,6 +22,7 @@ venv/
 env/
 .venv/
 ENV/
+venv_acoustic/
 
 # === ML Model Weights (too large for GitHub — use Git LFS or cloud storage) ===
 saved_model/
