@@ -49,7 +49,9 @@ def main():
     logger.info(f"GPUs available: {tf.config.list_physical_devices('GPU')}")
 
     # ── Generate / load data ──────────────────────────────────────────────────
-    X, y = generate_dummy_dataset(n_samples=N_SAMPLES, save=True)
+    import numpy as np
+    data = np.load("real_cough_data.npz")
+    X, y = data['X'], data['y']
     y_cat = to_categorical(y, num_classes=NUM_CLASSES)
     logger.info(f"Dataset: X={X.shape}  y={y_cat.shape}")
 
@@ -74,7 +76,7 @@ def main():
             verbose=1
         ),
         ModelCheckpoint(
-            filepath=os.path.join(SAVED_DIR, 'best_model.keras'),
+            filepath=os.path.join(SAVED_DIR, 'best_model.h5'),
             monitor='val_accuracy',
             save_best_only=True,
             verbose=1
@@ -93,8 +95,9 @@ def main():
     )
 
     # ── Save final model ──────────────────────────────────────────────────────
-    model.save(SAVED_DIR)
-    logger.info(f"✅ Model saved to: {SAVED_DIR}")
+    final_model_path = os.path.join(SAVED_DIR, 'final_model.keras')
+    model.save(final_model_path)
+    logger.info(f"✅ Model saved to: {final_model_path}")
 
     # ── Print summary ─────────────────────────────────────────────────────────
     best_epoch = history.history['val_accuracy'].index(

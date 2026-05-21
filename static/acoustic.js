@@ -63,30 +63,14 @@ const subclinicalWarn = document.getElementById('subclinical-warning');
 window.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  setModelStatus('⏳ Loading AI model…', '#f59e0b');
-  try {
-    await loadModel();
-  } catch (err) {
-    setModelStatus('❌ Model not found. Run export_model.py first.', '#ef4444');
-    console.error('Model load error:', err);
-    // Still allow button — will show friendly error
-  }
-  micBtn.addEventListener('click', handleMicClick);
-}
-
-// ── TF.js Model Loading ───────────────────────────────────────────────────────
-async function loadModel() {
-  if (typeof tf === 'undefined') {
-    throw new Error('TensorFlow.js not loaded');
-  }
-  tfModel = await tf.loadLayersModel(MODEL_URL);
-  // Warm-up pass to compile shaders
-  const dummy = tf.zeros([1, N_MFCC, MAX_FRAMES, 1]);
-  tfModel.predict(dummy).dispose();
-  dummy.dispose();
-  setModelStatus('✅ Edge AI model ready — runs 100% locally', '#00d4aa');
+  setModelStatus('✅ Google HeAR inference server ready', '#00d4aa');
   micBtn.disabled = false;
-  console.log('CoughCNN loaded:', tfModel.inputs[0].shape);
+  micBtn.addEventListener('click', handleMicClick);
+
+  const audioUpload = document.getElementById('audio-upload');
+  if (audioUpload) {
+    audioUpload.addEventListener('change', handleAudioUpload);
+  }
 }
 
 function setModelStatus(text, color) {
@@ -197,11 +181,38 @@ function drawWaveform() {
 async function onRecordingStop() {
   showState('loading');
 
-  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const webmBlob = new Blob(audioChunks, { type: 'audio/webm' });
+  
   try {
-    const mfcc   = await extractMFCC(blob);
-    const probs  = await runInference(mfcc);
-    showResults(probs);
+    // Decode WebM to AudioBuffer
+    const arrayBuffer = await webmBlob.arrayBuffer();
+    // Use an offline context to decode at the exact model sample rate
+    const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 2, SR);
+    const audioCtxToDecode = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await audioCtxToDecode.decodeAudioData(arrayBuffer);
+    
+    // Convert to WAV
+    const wavBlob = bufferToWav(audioBuffer);
+
+    const formData = new FormData();
+    formData.append('audio', wavBlob, 'recording.wav');
+    
+    const response = await fetch('/acoustic/analyze', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    if (result.status === 'success') {
+       showResults(result.probs);
+    } else {
+       throw new Error(result.error || 'Unknown server error');
+    }
   } catch (err) {
     console.error('Analysis error:', err);
     showState('idle');
@@ -210,210 +221,45 @@ async function onRecordingStop() {
   }
 }
 
-// ── Client-side MFCC extraction ───────────────────────────────────────────────
-/**
- * extractMFCC(blob) → Float32Array of shape [N_MFCC × MAX_FRAMES]
- *
- * Pipeline:
- *   1. Decode audio blob with AudioContext
- *   2. Resample to SR if needed
- *   3. Compute STFT power spectrum using AnalyserNode (or manual FFT)
- *   4. Apply Mel filterbank
- *   5. Take log
- *   6. Apply DCT → MFCCs
- *   7. Pad / truncate to MAX_FRAMES
- *   8. Normalize
- */
-async function extractMFCC(blob) {
-  const arrayBuffer = await blob.arrayBuffer();
-  const offlineCtx  = new OfflineAudioContext(1, SR * DURATION, SR);
-  let audioBuffer;
+// ── Audio Upload handler ──────────────────────────────────────────────────────
+async function handleAudioUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  showState('loading');
+  setRecordingUI('processing');
+  
+  const formData = new FormData();
+  formData.append('audio', file, file.name);
+
   try {
-    audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer);
-  } catch {
-    // Fallback: use a fresh context
-    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
-    audioBuffer  = await tmpCtx.decodeAudioData(arrayBuffer.slice(0));
-    tmpCtx.close();
-  }
-
-  // Get mono PCM, resampled to SR
-  const pcm = resampleMono(audioBuffer, SR);
-
-  // Trim / pad to exactly DURATION seconds
-  const targetLen = SR * DURATION;
-  let samples = new Float32Array(targetLen);
-  samples.set(pcm.slice(0, targetLen));  // zero-pads automatically
-
-  return computeMFCC(samples);
-}
-
-function resampleMono(audioBuffer, targetSR) {
-  const src = audioBuffer.getChannelData(0);
-  if (audioBuffer.sampleRate === targetSR) return src;
-  const ratio  = audioBuffer.sampleRate / targetSR;
-  const outLen = Math.floor(src.length / ratio);
-  const out    = new Float32Array(outLen);
-  for (let i = 0; i < outLen; i++) {
-    const pos = i * ratio;
-    const lo  = Math.floor(pos);
-    const hi  = Math.min(lo + 1, src.length - 1);
-    const t   = pos - lo;
-    out[i] = src[lo] * (1 - t) + src[hi] * t;
-  }
-  return out;
-}
-
-/**
- * computeMFCC — pure JS, no external library
- * Returns Float32Array, length = N_MFCC * MAX_FRAMES (row-major)
- */
-function computeMFCC(samples) {
-  const hopLen    = HOP_LENGTH;
-  const fftSize   = N_FFT;
-  const nMFCC     = N_MFCC;
-  const nFrames   = MAX_FRAMES;
-
-  // Pre-compute Hann window
-  const window_ = hanningWindow(fftSize);
-
-  // Mel filterbank
-  const melFilters = buildMelFilterbank(fftSize, SR, 0, SR / 2, 128);
-
-  // Output: [N_MFCC × MAX_FRAMES]
-  const mfccMatrix = new Float32Array(nMFCC * nFrames);
-
-  // Frame-by-frame
-  const numFrames = Math.floor((samples.length - fftSize) / hopLen) + 1;
-
-  for (let fi = 0; fi < nFrames; fi++) {
-    const start = fi * hopLen;
-    const frame = new Float32Array(fftSize);
-
-    // Copy + window
-    for (let i = 0; i < fftSize; i++) {
-      const si = start + i;
-      frame[i] = (si < samples.length ? samples[si] : 0) * window_[i];
+    const response = await fetch('/acoustic/analyze', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || `HTTP error! status: ${response.status}`);
     }
-
-    // FFT → power spectrum
-    const spectrum = powerSpectrum(frame);
-
-    // Apply Mel filterbank → log
-    const logMel = new Float32Array(melFilters.length);
-    for (let m = 0; m < melFilters.length; m++) {
-      let energy = 0;
-      for (let k = 0; k < spectrum.length; k++) energy += melFilters[m][k] * spectrum[k];
-      logMel[m] = Math.log(Math.max(energy, 1e-10));
+    
+    const result = await response.json();
+    if (result.status === 'success') {
+       showResults(result.probs);
+    } else {
+       throw new Error(result.error || 'Unknown server error');
     }
-
-    // DCT-II → MFCCs (first nMFCC coefficients)
-    for (let n = 0; n < nMFCC; n++) {
-      let sum = 0;
-      for (let m = 0; m < logMel.length; m++) {
-        sum += logMel[m] * Math.cos(Math.PI * n * (2 * m + 1) / (2 * logMel.length));
-      }
-      mfccMatrix[n * nFrames + fi] = sum;
-    }
+  } catch (err) {
+    console.error('Analysis error:', err);
+    showState('idle');
+    alert('Analysis failed: ' + err.message);
+    resetMicUI();
   }
-
-  // Normalize each MFCC coefficient across time
-  for (let n = 0; n < nMFCC; n++) {
-    let mean = 0, std = 0;
-    for (let fi = 0; fi < nFrames; fi++) mean += mfccMatrix[n * nFrames + fi];
-    mean /= nFrames;
-    for (let fi = 0; fi < nFrames; fi++) std += (mfccMatrix[n * nFrames + fi] - mean) ** 2;
-    std = Math.sqrt(std / nFrames + 1e-8);
-    for (let fi = 0; fi < nFrames; fi++) {
-      mfccMatrix[n * nFrames + fi] = (mfccMatrix[n * nFrames + fi] - mean) / std;
-    }
-  }
-
-  return mfccMatrix;
+  
+  // reset file input
+  event.target.value = '';
 }
 
-function hanningWindow(N) {
-  const w = new Float32Array(N);
-  for (let i = 0; i < N; i++) w[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1)));
-  return w;
-}
-
-/** DFT-based power spectrum (uses Cooley-Tukey FFT if size is power-of-2) */
-function powerSpectrum(frame) {
-  const N    = frame.length;
-  const real = Array.from(frame);
-  const imag = new Array(N).fill(0);
-  fftCooleyTukey(real, imag, N);
-  const half = Math.floor(N / 2) + 1;
-  const ps   = new Float32Array(half);
-  for (let i = 0; i < half; i++) ps[i] = real[i] ** 2 + imag[i] ** 2;
-  return ps;
-}
-
-function fftCooleyTukey(re, im, N) {
-  if (N <= 1) return;
-  // Bit-reversal permutation
-  for (let i = 1, j = 0; i < N; i++) {
-    let bit = N >> 1;
-    for (; j & bit; bit >>= 1) j ^= bit;
-    j ^= bit;
-    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
-  }
-  // Cooley-Tukey butterfly
-  for (let len = 2; len <= N; len <<= 1) {
-    const ang = -2 * Math.PI / len;
-    const wRe = Math.cos(ang), wIm = Math.sin(ang);
-    for (let i = 0; i < N; i += len) {
-      let curRe = 1, curIm = 0;
-      for (let j = 0; j < len / 2; j++) {
-        const uRe = re[i + j],          uIm = im[i + j];
-        const vRe = re[i + j + len/2] * curRe - im[i + j + len/2] * curIm;
-        const vIm = re[i + j + len/2] * curIm + im[i + j + len/2] * curRe;
-        re[i + j]         = uRe + vRe; im[i + j]         = uIm + vIm;
-        re[i + j + len/2] = uRe - vRe; im[i + j + len/2] = uIm - vIm;
-        const tmpRe = curRe * wRe - curIm * wIm;
-        curIm = curRe * wIm + curIm * wRe; curRe = tmpRe;
-      }
-    }
-  }
-}
-
-function buildMelFilterbank(nFFT, sr, fMin, fMax, nFilters) {
-  const halfFFT = Math.floor(nFFT / 2) + 1;
-  const melMin  = hzToMel(fMin);
-  const melMax  = hzToMel(fMax);
-  const melPts  = Array.from({ length: nFilters + 2 }, (_, i) =>
-    melToHz(melMin + i * (melMax - melMin) / (nFilters + 1))
-  );
-  // Convert Hz to FFT bin
-  const bins = melPts.map(f => Math.floor((nFFT + 1) * f / sr));
-  const filters = [];
-  for (let m = 1; m <= nFilters; m++) {
-    const f = new Float32Array(halfFFT);
-    for (let k = bins[m - 1]; k < bins[m]; k++)
-      f[k] = (k - bins[m - 1]) / (bins[m] - bins[m - 1] + 1e-8);
-    for (let k = bins[m]; k < bins[m + 1]; k++)
-      f[k] = (bins[m + 1] - k) / (bins[m + 1] - bins[m] + 1e-8);
-    filters.push(f);
-  }
-  return filters;
-}
-
-const hzToMel  = hz  => 2595 * Math.log10(1 + hz / 700);
-const melToHz  = mel => 700 * (Math.pow(10, mel / 2595) - 1);
-
-// ── TF.js Inference ───────────────────────────────────────────────────────────
-async function runInference(mfccFlat) {
-  if (!tfModel) throw new Error('Model not loaded. Run export_model.py first.');
-
-  // mfccFlat: Float32Array [N_MFCC × MAX_FRAMES] row-major
-  // Reshape to [1, N_MFCC, MAX_FRAMES, 1]
-  const input  = tf.tensor4d(mfccFlat, [1, N_MFCC, MAX_FRAMES, 1]);
-  const output = tfModel.predict(input);
-  const probs  = await output.data();   // Float32Array length 4
-  input.dispose(); output.dispose();
-  return Array.from(probs);
-}
 
 // ── UI Rendering ──────────────────────────────────────────────────────────────
 function showResults(probs) {
@@ -474,15 +320,65 @@ function setRecordingUI(state) {
     micBtn.classList.add('processing');
     micBtn.disabled = true;
     micIcon.textContent = '🔄';
-    recordLabel.innerHTML = '<strong>Analysing…</strong>Extracting spectral features';
+    recordLabel.innerHTML = '<strong>Analysing…</strong>Extracting HeAR embeddings';
     recordingRing.style.display = 'none';
   }
 }
 
 function resetMicUI() {
   micBtn.classList.remove('recording', 'processing');
-  micBtn.disabled  = !tfModel;
+  micBtn.disabled  = false;
   micIcon.textContent = '🎙️';
   recordLabel.innerHTML = '<strong>Record Your Cough</strong>Hold for 5 seconds';
   recordingRing.style.display = 'none';
+}
+
+// ── Audio encoding utilities ──────────────────────────────────────────────────
+function bufferToWav(abuffer) {
+  let numOfChan = abuffer.numberOfChannels,
+      length = abuffer.length * numOfChan * 2 + 44,
+      buffer = new ArrayBuffer(length),
+      view = new DataView(buffer),
+      channels = [], i, sample,
+      offset = 0,
+      pos = 0;
+
+  // write WAVE header
+  setUint32(0x46464952);                         // "RIFF"
+  setUint32(length - 8);                         // file length - 8
+  setUint32(0x45564157);                         // "WAVE"
+  setUint32(0x20746d66);                         // "fmt " chunk
+  setUint32(16);                                 // length = 16
+  setUint16(1);                                  // PCM (uncompressed)
+  setUint16(numOfChan);
+  setUint32(abuffer.sampleRate);
+  setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+  setUint16(numOfChan * 2);                      // block-align
+  setUint16(16);                                 // 16-bit (hardcoded in this export)
+  setUint32(0x61746164);                         // "data" - chunk
+  setUint32(length - pos - 4);                   // chunk length
+
+  for (i = 0; i < abuffer.numberOfChannels; i++)
+    channels.push(abuffer.getChannelData(i));
+
+  while (pos < length) {
+    for (i = 0; i < numOfChan; i++) {
+      sample = Math.max(-1, Math.min(1, channels[i][offset]));
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+      view.setInt16(pos, sample, true);          // write 16-bit sample
+      pos += 2;
+    }
+    offset++;
+  }
+
+  function setUint16(data) {
+    view.setUint16(pos, data, true);
+    pos += 2;
+  }
+  function setUint32(data) {
+    view.setUint32(pos, data, true);
+    pos += 4;
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
 }
