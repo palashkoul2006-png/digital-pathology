@@ -28,6 +28,7 @@ const btnSendChat = id('btn-send-chat');
 const chatWindow = id('chat-window');
 let currentDiagnosisContext = "";
 let chatHistoryString = "";
+let currentRecordId = null;
 
 // Camera
 const btnStartCamera = id('btn-start-camera');
@@ -37,6 +38,8 @@ const captureCanvas  = id('capture-canvas');
 
 // Results
 const idleState      = id('idle-state');
+const errorState     = id('error-state');
+const errorMsg       = id('error-msg');
 const loadingState   = id('loading-state');
 const resultsContent = id('results-content');
 
@@ -205,9 +208,11 @@ function renderResults(data) {
   // Store the diagnosis context for the chatbot
   currentDiagnosisContext = `Prediction: ${data.display_name}, Confidence: ${data.confidence}%, Risk: ${data.risk_level}.`;
   chatHistoryString = ""; // Reset memory for a new patient
+  currentRecordId = data.record_id || null; // Store the ID of this newly created DB record
   chatWindow.innerHTML = `<div style="background: rgba(45,125,210,0.2); padding: 8px 12px; border-radius: 8px; align-self: flex-start; max-width: 85%; color: #c5e8fb;">Hello! Do you have any questions about this ${data.display_name} diagnosis?</div>`;
   // Switch to results view
   idleState.classList.add('hidden');
+  errorState.classList.add('hidden');
   loadingState.classList.add('hidden');
   resultsContent.classList.remove('hidden');
 
@@ -338,6 +343,7 @@ function renderResults(data) {
 
 function showLoadingResults() {
   idleState.classList.add('hidden');
+  errorState.classList.add('hidden');
   loadingState.classList.remove('hidden');
   resultsContent.classList.add('hidden');
 }
@@ -346,23 +352,22 @@ function showError(msg) {
   idleState.classList.add('hidden');
   loadingState.classList.add('hidden');
   resultsContent.classList.add('hidden');
-  idleState.classList.remove('hidden');
-  idleState.innerHTML = `
-    <div class="idle-icon">⚠️</div>
-    <p style="color:#ff4f6a;font-weight:600;">Analysis Error</p>
-    <p style="font-size:0.82rem;">${escapeHtml(msg)}</p>
-    <button class="btn btn-ghost" onclick="resetResults()" style="margin-top:0.5rem;">Try Again</button>
-  `;
+  errorState.classList.remove('hidden');
+  errorMsg.textContent = msg;
 }
 
 function resetResults() {
+  errorState.classList.add('hidden');
   idleState.classList.remove('hidden');
   loadingState.classList.add('hidden');
   resultsContent.classList.add('hidden');
-  idleState.innerHTML = `
-    <div class="idle-icon">🧬</div>
-    <p>Upload or capture an image to begin analysis</p>
-  `;
+  
+  // Hide standalone history on reset
+  const stContainer = id('standalone-history-container');
+  if(stContainer) stContainer.classList.add('hidden');
+  const stInput = id('standalone-patient-id');
+  if(stInput) stInput.value = '';
+
   // Add these two lines to hide the generative AI card on reset
   if(simulatedResultWrap) simulatedResultWrap.classList.add('hidden');
   if(simulatedImg) simulatedImg.src = '';
@@ -517,7 +522,11 @@ btnViewHistory.addEventListener('click', async () => {
   btnViewHistory.textContent = 'Loading records...';
   
   try {
-    const res = await fetch(`/api/history/${pid}`);
+    let url = `/api/history/${pid}`;
+    if (currentRecordId) {
+      url += `?exclude=${currentRecordId}`;
+    }
+    const res = await fetch(url);
     const data = await res.json();
     
     if (data.status === 'success') {
@@ -532,10 +541,17 @@ btnViewHistory.addEventListener('click', async () => {
           if (item.risk_level === 'Medium') riskColor = '#ffb347'; // Warning (Orange)
           if (item.risk_level === 'High') riskColor = '#ff4f6a'; // Danger (Red)
 
+          // Format UTC string into local browser time
+          const localDate = new Date(item.date);
+          const formattedDate = localDate.toLocaleString(undefined, { 
+            month: 'short', day: 'numeric', year: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+          });
+
           const entry = document.createElement('div');
           entry.style.cssText = `padding: 12px; border-left: 3px solid ${riskColor}; background: rgba(255,255,255,0.03); border-radius: 0 8px 8px 0;`;
           entry.innerHTML = `
-            <div style="font-size: 0.75rem; color: rgba(196,224,255,0.5); margin-bottom: 4px;">${item.date}</div>
+            <div style="font-size: 0.75rem; color: rgba(196,224,255,0.5); margin-bottom: 4px;">${formattedDate}</div>
             <div style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 4px;">${item.prediction}</div>
             <div style="font-size: 0.8rem; color: rgba(196,224,255,0.7);">
               Confidence: ${item.confidence}% | Risk: <span style="color: ${riskColor}; font-weight: bold;">${item.risk_level}</span>
@@ -571,3 +587,64 @@ resetResults = function() {
   if(historyCard) historyCard.classList.add('hidden');
   if(btnViewHistory) btnViewHistory.classList.add('hidden');
 };
+
+// Standalone History Lookup in Idle State
+document.addEventListener('DOMContentLoaded', () => {
+  const btnStandaloneHistory = id('btn-standalone-history');
+  const standalonePatientId = id('standalone-patient-id');
+  const standaloneHistoryContainer = id('standalone-history-container');
+  const standaloneHistoryTimeline = id('standalone-history-timeline');
+
+  if(btnStandaloneHistory) {
+    btnStandaloneHistory.addEventListener('click', async () => {
+      const pid = standalonePatientId.value.trim();
+      if (!pid) return;
+
+      btnStandaloneHistory.textContent = '...';
+      
+      try {
+        const res = await fetch(`/api/history/${pid}`);
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+          standaloneHistoryTimeline.innerHTML = '';
+          
+          if (data.history.length === 0) {
+            standaloneHistoryTimeline.innerHTML = '<p class="panel-sub">No previous records found for this ID.</p>';
+          } else {
+            // Build the visual timeline blocks
+            data.history.forEach(item => {
+              let riskColor = '#34d97b'; // Low (Green)
+              if (item.risk_level === 'Medium') riskColor = '#ffb347'; // Warning (Orange)
+              if (item.risk_level === 'High') riskColor = '#ff4f6a'; // Danger (Red)
+
+              // Format UTC string into local browser time
+              const localDate = new Date(item.date);
+              const formattedDate = localDate.toLocaleString(undefined, { 
+                month: 'short', day: 'numeric', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+              });
+
+              const entry = document.createElement('div');
+              entry.style.cssText = `padding: 12px; border-left: 3px solid ${riskColor}; background: rgba(255,255,255,0.03); border-radius: 0 8px 8px 0;`;
+              entry.innerHTML = `
+                <div style="font-size: 0.75rem; color: rgba(196,224,255,0.5); margin-bottom: 4px;">${formattedDate}</div>
+                <div style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 4px;">${item.prediction}</div>
+                <div style="font-size: 0.8rem; color: rgba(196,224,255,0.7);">
+                  Confidence: ${item.confidence}% | Risk: <span style="color: ${riskColor}; font-weight: bold;">${item.risk_level}</span>
+                </div>
+              `;
+              standaloneHistoryTimeline.appendChild(entry);
+            });
+          }
+          
+          standaloneHistoryContainer.classList.remove('hidden');
+        }
+      } catch (err) {
+        alert('Failed to load patient history.');
+      } finally {
+        btnStandaloneHistory.textContent = 'Search';
+      }
+    });
+  }
+});

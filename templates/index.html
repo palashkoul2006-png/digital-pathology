@@ -35,6 +35,7 @@
       <span class="nav-item">Digital Pathology Suite</span>
       <span class="nav-divider">|</span>
       <a href="/acoustic" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.35rem 0.85rem;border-radius:999px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;font-size:0.8rem;font-weight:600;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='rgba(99,102,241,0.28)'" onmouseout="this.style.background='rgba(99,102,241,0.15)'">🫁 Acoustic Analysis</a>
+      <a href="/luna_landing" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.35rem 0.85rem;border-radius:999px;background:rgba(201,97,122,0.15);border:1px solid rgba(201,97,122,0.4);color:#f0c4ce;font-size:0.8rem;font-weight:600;text-decoration:none;transition:background .2s;margin-left:0.5rem;" onmouseover="this.style.background='rgba(201,97,122,0.28)'" onmouseout="this.style.background='rgba(201,97,122,0.15)'">🌙 Luna Advisor</a>
     </nav>
   </div>
 </header>
@@ -115,6 +116,22 @@
     <div class="idle-state" id="idle-state">
       <div class="idle-icon">🧬</div>
       <p>Upload or capture an image to begin analysis</p>
+
+      <div style="margin-top: 2rem; width: 100%; max-width: 350px; margin-left: auto; margin-right: auto; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
+        <p style="font-size: 0.85rem; color: rgba(196,224,255,0.6); margin-bottom: 0.75rem;">Or lookup previous patient records:</p>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="standalone-patient-id" placeholder="Patient ID (e.g. PAT-1042)" style="flex: 1; padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: var(--white); font-family: var(--font-body); font-size: 0.85rem; outline: none; transition: border-color 0.3s;" onfocus="this.style.borderColor='var(--ice)'" onblur="this.style.borderColor='var(--glass-border)'" />
+          <button id="btn-standalone-history" class="btn btn-primary" style="padding: 10px 16px;">Search</button>
+        </div>
+      </div>
+
+      <div id="standalone-history-container" class="hidden" style="margin-top: 2rem; width: 100%; text-align: left;">
+        <div class="heatmap-header">
+          <span>Longitudinal Timeline</span>
+          <span class="badge" style="background: rgba(45,125,210,0.2); border-color: #2d7dd2; color: #c5e8fb;">MongoDB</span>
+        </div>
+        <div id="standalone-history-timeline" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;"></div>
+      </div>
     </div>
 
     <!-- Loading state -->
@@ -122,6 +139,14 @@
       <div class="spinner"></div>
       <p>Analysing image…</p>
       <small>Running inference &amp; generating heatmap</small>
+    </div>
+
+    <!-- Error state -->
+    <div class="idle-state hidden" id="error-state">
+      <div class="idle-icon">⚠️</div>
+      <p style="color:#ff4f6a;font-weight:600;">Analysis Error</p>
+      <p style="font-size:0.82rem;" id="error-msg"></p>
+      <button class="btn btn-ghost" onclick="resetResults()" style="margin-top:0.5rem;">Try Again</button>
     </div>
 
     <!-- Results -->

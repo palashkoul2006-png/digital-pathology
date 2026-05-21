@@ -63,7 +63,7 @@ const subclinicalWarn = document.getElementById('subclinical-warning');
 window.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  setModelStatus('✅ Google HeAR inference server ready', '#00d4aa');
+  setModelStatus('✅ Google HeAR & MFCC ensemble server ready', '#00d4aa');
   micBtn.disabled = false;
   micBtn.addEventListener('click', handleMicClick);
 
@@ -320,7 +320,7 @@ function setRecordingUI(state) {
     micBtn.classList.add('processing');
     micBtn.disabled = true;
     micIcon.textContent = '🔄';
-    recordLabel.innerHTML = '<strong>Analysing…</strong>Extracting HeAR embeddings';
+    recordLabel.innerHTML = '<strong>Analysing…</strong>Extracting audio features';
     recordingRing.style.display = 'none';
   }
 }

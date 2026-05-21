@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luna — Cycle Health Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fdf6f0;
+    --card: #fff8f3;
+    --rose: #c9617a;
+    --rose-light: #f0c4ce;
+    --rose-dark: #9b3a52;
+    --mauve: #8b6b7a;
+    --sage: #7a9e8b;
+    --warm: #e8d5c4;
+    --text: #2d1f26;
+    --muted: #7a6370;
+    --border: #ead5cb;
+    --urgent: #c0392b;
+    --caution: #d4882a;
+    --ok: #5a9e78;
+    --info: #5a7d9e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image: radial-gradient(ellipse at 10% 20%, #f5d9e4 0%, transparent 50%),
+                      radial-gradient(ellipse at 90% 80%, #e8d5f0 0%, transparent 50%);
+  }
+
+  .header {
+    text-align: center;
+    padding: 48px 24px 24px;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    color: var(--rose-dark);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .logo span { font-style: italic; color: var(--rose); }
+
+  .tagline {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: 6px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .moon-divider {
+    font-size: 1.4rem;
+    margin: 12px 0;
+    opacity: 0.6;
+  }
+
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 24px rgba(201,97,122,0.07);
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--rose-dark);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--mauve);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  input, select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    transition: border-color 0.2s;
+    outline: none;
+    appearance: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--rose);
+    box-shadow: 0 0 0 3px rgba(201,97,122,0.1);
+  }
+
+  .slider-group {
+    margin-bottom: 16px;
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .slider-value {
+    background: var(--rose-light);
+    color: var(--rose-dark);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 20px;
+  }
+
+  input[type=range] {
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    accent-color: var(--rose);
+    cursor: pointer;
+  }
+
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .checkbox-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .checkbox-pill:hover { border-color: var(--rose-light); }
+
+  .checkbox-pill input[type=checkbox] {
+    width: 16px; height: 16px;
+    accent-color: var(--rose);
+    padding: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .checkbox-pill.checked {
+    border-color: var(--rose);
+    background: #fff0f4;
+    color: var(--rose-dark);
+  }
+
+  .analyze-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--rose-dark), var(--rose));
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+  }
+
+  .analyze-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(155,58,82,0.3);
+  }
+
+  .analyze-btn:disabled {
+    opacity: 0.6;
+    transform: none;
+    cursor: not-allowed;
+  }
+
+  /* Result styles */
+  #result { display: none; animation: fadeUp 0.5s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .severity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 22px;
+    border-radius: 50px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+  }
+
+  .severity-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  .sev-urgent { background: #fdecea; color: var(--urgent); border: 1.5px solid #f5c6c2; }
+  .sev-urgent .severity-dot { background: var(--urgent); }
+
+  .sev-caution { background: #fef6e4; color: var(--caution); border: 1.5px solid #f8dda8; }
+  .sev-caution .severity-dot { background: var(--caution); }
+
+  .sev-monitor { background: #e8f4ee; color: #3a8c60; border: 1.5px solid #b8dcca; }
+  .sev-monitor .severity-dot { background: #5a9e78; }
+
+  .sev-ok { background: #eaf2fb; color: var(--info); border: 1.5px solid #b8d4ed; }
+  .sev-ok .severity-dot { background: var(--info); }
+
+  .score-ring {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  .ring-svg { width: 140px; height: 140px; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--warm); stroke-width: 10; }
+  .ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .ring-text { transform: rotate(90deg); transform-origin: 50% 50%; }
+
+  .score-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: var(--text);
+  }
+
+  .score-sublabel {
+    font-size: 0.7rem;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .recommendation-box {
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 16px;
+    border-left: 4px solid;
+  }
+
+  .rec-urgent { background: #fdecea; border-color: var(--urgent); }
+  .rec-caution { background: #fef6e4; border-color: var(--caution); }
+  .rec-monitor { background: #e8f4ee; border-color: #5a9e78; }
+  .rec-ok { background: #eaf2fb; border-color: var(--info); }
+
+  .rec-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  .rec-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .factors-list {
+    margin-top: 16px;
+  }
+
+  .factor-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .factor-item:last-child { border-bottom: none; }
+
+  .factor-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+
+  .disclaimer {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 20px;
+    font-style: italic;
+    line-height: 1.6;
+    padding: 0 8px;
+  }
+
+  .loading-ring {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    color: var(--rose);
+    font-style: italic;
+  }
+
+  .spinner {
+    width: 22px; height: 22px;
+    border: 3px solid var(--rose-light);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ai-response-block {
+    background: linear-gradient(135deg, #fff8fb, #f5f0ff);
+    border: 1px solid #e8d5f0;
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 16px;
+    font-size: 0.92rem;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .ai-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #9b7aaa;
+    font-weight: 500;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Lu<span>na</span></div>
+  <div class="moon-divider">🌙</div>
+  <div class="tagline">Cycle Health Advisor</div>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="section-title">About You</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="age" min="12" max="60" placeholder="e.g. 26" />
+      </div>
+      <div class="form-group">
+        <label>BMI</label>
+        <input type="number" id="bmi" min="14" max="45" step="0.1" placeholder="e.g. 22.5" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Exercise Frequency</label>
+        <select id="exercise">
+          <option value="">Select...</option>
+          <option value="Low">Low (rarely / never)</option>
+          <option value="Moderate">Moderate (2–4x/week)</option>
+          <option value="High">High (daily / intense)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Diet Type</label>
+        <select id="diet">
+          <option value="">Select...</option>
+          <option value="Balanced">Balanced</option>
+          <option value="Vegetarian">Vegetarian</option>
+          <option value="Low Carb">Low Carb</option>
+          <option value="High Sugar">High Sugar</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <label>Stress Level</label>
+        <span class="slider-value" id="stress-val">3</span>
+      </div>
+      <input type="range" id="stress" min="1" max="5" value="3"
+        oninput="document.getElementById('stress-val').textContent=this.value" />
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <label>Sleep Hours (per night)</label>
+        <span class="slider-value" id="sleep-val">7</span>
+      </div>
+      <input type="range" id="sleep" min="3" max="11" step="0.5" value="7"
+        oninput="document.getElementById('sleep-val').textContent=this.value" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Your Cycle</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Cycle Length (days)</label>
+        <input type="number" id="cycleLen" min="15" max="90" placeholder="e.g. 28" />
+      </div>
+      <div class="form-group">
+        <label>Period Length (days)</label>
+        <input type="number" id="periodLen" min="1" max="14" placeholder="e.g. 5" />
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 8px;">Current Symptoms</div>
+    <div class="checkbox-grid" id="symptoms-grid">
+      <label class="checkbox-pill" id="pill-Cramps">
+        <input type="checkbox" value="Cramps" onchange="togglePill(this)"> 🔴 Cramps
+      </label>
+      <label class="checkbox-pill" id="pill-Fatigue">
+        <input type="checkbox" value="Fatigue" onchange="togglePill(this)"> 😴 Fatigue
+      </label>
+      <label class="checkbox-pill" id="pill-Headache">
+        <input type="checkbox" value="Headache" onchange="togglePill(this)"> 🤕 Headache
+      </label>
+      <label class="checkbox-pill" id="pill-Bloating">
+        <input type="checkbox" value="Bloating" onchange="togglePill(this)"> 💧 Bloating
+      </label>
+      <label class="checkbox-pill" id="pill-Mood Swings">
+        <input type="checkbox" value="Mood Swings" onchange="togglePill(this)"> 🌊 Mood Swings
+      </label>
+      <label class="checkbox-pill" id="pill-Heavy Bleeding">
+        <input type="checkbox" value="Heavy Bleeding" onchange="togglePill(this)"> ⚡ Heavy Bleeding
+      </label>
+      <label class="checkbox-pill" id="pill-Spotting">
+        <input type="checkbox" value="Spotting" onchange="togglePill(this)"> 🔸 Spotting
+      </label>
+      <label class="checkbox-pill" id="pill-None">
+        <input type="checkbox" value="None" onchange="togglePill(this)"> ✨ None
+      </label>
+    </div>
+  </div>
+
+  <button class="analyze-btn" onclick="analyze()">✦ Analyze My Cycle</button>
+
+  <div class="loading-ring" id="loading">
+    <div class="spinner"></div>
+    <span>Analyzing your cycle with AI...</span>
+  </div>
+
+  <div id="result" class="card">
+    <div class="section-title">Your Results</div>
+
+    <div id="severity-badge"></div>
+
+    <div class="score-ring">
+      <svg class="ring-svg" viewBox="0 0 120 120">
+        <circle class="ring-bg" cx="60" cy="60" r="50" />
+        <circle class="ring-fill" id="ring-fill" cx="60" cy="60" r="50"
+  stroke-dasharray="314"
+  stroke-dashoffset="314"
+  style="transition: stroke-dashoffset 1s ease, stroke 0.5s ease;" />
+        <g class="ring-text">
+          <text class="score-label" id="score-text" x="60" y="55">--</text>
+          <text class="score-sublabel" x="60" y="73">Health Score</text>
+        </g>
+      </svg>
+    </div>
+
+    <div id="rec-box"></div>
+
+    <div class="ai-response-block" id="ai-block" style="display:none">
+      <div class="ai-label">🌙 Luna's Detailed Analysis</div>
+      <div id="ai-text"></div>
+    </div>
+
+    <div class="factors-list" id="factors-list"></div>
+
+    <p class="disclaimer">⚠️ Luna is an AI-powered health advisor for informational purposes only. It is not a substitute for professional medical advice. Always consult a qualified healthcare provider for diagnosis and treatment.</p>
+  </div>
+</div>
+
+<script>
+function togglePill(cb) {
+  const label = document.getElementById('pill-' + cb.value);
+  if (cb.checked) label.classList.add('checked');
+  else label.classList.remove('checked');
+  if (cb.value === 'None' && cb.checked) {
+    document.querySelectorAll('#symptoms-grid input[type=checkbox]').forEach(c => {
+      if (c.value !== 'None') { c.checked = false; document.getElementById('pill-' + c.value).classList.remove('checked'); }
+    });
+  } else if (cb.checked) {
+    const none = document.querySelector('#symptoms-grid input[value="None"]');
+    none.checked = false;
+    document.getElementById('pill-None').classList.remove('checked');
+  }
+}
+
+function getCheckedSymptoms() {
+  return [...document.querySelectorAll('#symptoms-grid input[type=checkbox]:checked')].map(c => c.value);
+}
+
+function computeScore(data) {
+  let score = 100;
+  let factors = [];
+
+  // Cycle length: normal 21-35 days
+  if (data.cycleLen < 21) { score -= 20; factors.push({ icon: '📅', text: `Cycle length of ${data.cycleLen} days is shorter than normal (21–35 days). This may indicate a hormonal imbalance.` }); }
+  else if (data.cycleLen > 35) { score -= 15; factors.push({ icon: '📅', text: `Cycle length of ${data.cycleLen} days is longer than typical. Cycles over 35 days may suggest irregular ovulation.` }); }
+  else { factors.push({ icon: '📅', text: `Cycle length of ${data.cycleLen} days is within the normal range (21–35 days). ✓` }); }
+
+  // Period length: normal 2-7 days
+  if (data.periodLen < 2) { score -= 10; factors.push({ icon: '🩸', text: `Period lasting only ${data.periodLen} day(s) is unusually short. This might be worth mentioning to a doctor.` }); }
+  else if (data.periodLen > 7) { score -= 15; factors.push({ icon: '🩸', text: `Period lasting ${data.periodLen} days exceeds the typical range (2–7 days). Prolonged bleeding should be evaluated.` }); }
+  else { factors.push({ icon: '🩸', text: `Period length of ${data.periodLen} days is within the normal range. ✓` }); }
+
+  // Stress
+  if (data.stress >= 4) { score -= 12; factors.push({ icon: '😰', text: `High stress level (${data.stress}/5) can disrupt hormones and cause irregular cycles or worsened symptoms.` }); }
+  else if (data.stress === 3) { score -= 5; factors.push({ icon: '😐', text: 'Moderate stress may mildly affect your cycle.' }); }
+  else { factors.push({ icon: '😊', text: 'Low stress is beneficial for cycle regularity. ✓' }); }
+
+  // Sleep
+  if (data.sleep < 6) { score -= 12; factors.push({ icon: '💤', text: `Getting only ${data.sleep} hours of sleep can impact hormonal balance and worsen menstrual symptoms.` }); }
+  else if (data.sleep < 7) { score -= 5; factors.push({ icon: '💤', text: 'Slightly low sleep may have a mild effect on your cycle.' }); }
+  else { factors.push({ icon: '💤', text: `${data.sleep} hours of sleep is healthy for hormonal regulation. ✓` }); }
+
+  // BMI
+  if (data.bmi < 18.5) { score -= 12; factors.push({ icon: '⚖️', text: `BMI of ${data.bmi} is underweight. Low body weight can suppress ovulation and cause missed periods.` }); }
+  else if (data.bmi > 28) { score -= 8; factors.push({ icon: '⚖️', text: `BMI of ${data.bmi} is higher than ideal, which can affect estrogen levels and cycle regularity.` }); }
+  else { factors.push({ icon: '⚖️', text: `BMI of ${data.bmi} is within a healthy range for reproductive health. ✓` }); }
+
+  // Diet
+  if (data.diet === 'High Sugar') { score -= 10; factors.push({ icon: '🍬', text: 'A high-sugar diet can worsen inflammation, hormonal imbalances, and PCOS symptoms.' }); }
+  else if (data.diet === 'Balanced') { factors.push({ icon: '🥗', text: 'A balanced diet supports hormonal health and cycle regularity. ✓' }); }
+
+  // Exercise
+  if (data.exercise === 'Low') { score -= 5; factors.push({ icon: '🏃', text: 'Low exercise frequency may reduce circulation and worsen cramps. Moderate activity helps.' }); }
+  else if (data.exercise === 'High') { score -= 6; factors.push({ icon: '🏃', text: 'Very high exercise intensity can disrupt hormones and suppress ovulation (exercise-induced amenorrhea).' }); }
+  else { factors.push({ icon: '🏃', text: 'Moderate exercise is ideal for cycle health and pain management. ✓' }); }
+
+  // Symptoms
+  const badSymptoms = data.symptoms.filter(s => ['Heavy Bleeding', 'Spotting'].includes(s));
+  const numSymptoms = data.symptoms.filter(s => s !== 'None').length;
+  if (badSymptoms.includes('Heavy Bleeding')) { score -= 15; factors.push({ icon: '🚨', text: 'Heavy bleeding is a significant symptom that warrants medical attention to rule out fibroids, polyps, or hormonal issues.' }); }
+  if (badSymptoms.includes('Spotting')) { score -= 10; factors.push({ icon: '🔸', text: 'Mid-cycle spotting can indicate hormonal fluctuations and should be evaluated if recurring.' }); }
+  if (numSymptoms >= 3) { score -= 8; factors.push({ icon: '⚠️', text: `You are experiencing ${numSymptoms} symptoms simultaneously, which suggests a more significant cycle disruption.` }); }
+
+  return { score: Math.max(0, Math.min(100, score)), factors };
+}
+
+function getSeverity(score, symptoms) {
+  const hasHeavy = symptoms.includes('Heavy Bleeding');
+  const hasSpotting = symptoms.includes('Spotting');
+  if (score < 40 || hasHeavy) return 'urgent';
+  if (score < 60 || hasSpotting) return 'caution';
+  if (score < 78) return 'monitor';
+  return 'ok';
+}
+
+function renderResult(data, score, factors, severity, aiText) {
+  // Score ring
+  const ringFill = document.getElementById('ring-fill');
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+
+  ringFill.style.strokeDasharray = circumference;
+  setTimeout(() => {
+  ringFill.style.strokeDashoffset = offset;
+}, 100);
+ringFill.style.transition = "none";
+ringFill.style.strokeDashoffset = circumference;
+
+setTimeout(() => {
+  ringFill.style.transition = "stroke-dashoffset 1s ease";
+  ringFill.style.strokeDashoffset = offset;
+}, 50);
+
+  const offset = circumference * (1 - score / 100);
+
+  // Set color
+  const colorMap = {
+    urgent: '#c0392b',
+    caution: '#d4882a',
+    monitor: '#5a9e78',
+    ok: '#5a7d9e'
+  };
+  ringFill.style.stroke = colorMap[severity];
+
+  // Animate
+  setTimeout(() => {
+    ringFill.style.strokeDashoffset = offset;
+  }, 100);
+
+  // Update text
+  document.getElementById('score-text').textContent = score;
+  // Badge
+  const badges = {
+    urgent: { cls: 'sev-urgent', icon: '🚨', label: 'Needs Immediate Attention' },
+    caution: { cls: 'sev-caution', icon: '⚠️', label: 'See a Doctor Soon' },
+    monitor: { cls: 'sev-monitor', icon: '🌿', label: 'Monitor & Self-Care' },
+    ok: { cls: 'sev-ok', icon: '✨', label: 'Generally Healthy' },
+  };
+  const b = badges[severity];
+  document.getElementById('severity-badge').innerHTML =
+    `<div class="severity-badge ${b.cls}"><span class="severity-dot"></span>${b.icon} ${b.label}</div>`;
+
+  // Recommendation box
+  const recs = {
+    urgent: {
+      cls: 'rec-urgent',
+      title: '🚨 Visit a Doctor Immediately',
+      text: 'Your cycle shows patterns that require prompt medical evaluation. Heavy bleeding, very irregular cycles, or a combination of several risk factors can indicate conditions like PCOS, endometriosis, fibroids, or hormonal disorders that need diagnosis and treatment. Please schedule an appointment with a gynecologist as soon as possible — ideally within the next few days. Do not self-treat.'
+    },
+    caution: {
+      cls: 'rec-caution',
+      title: '⚠️ Schedule a Doctor Visit When You Can',
+      text: "Your cycle has a few concerning patterns, but they're not an emergency. It's advisable to consult a gynecologist within the next few weeks. In the meantime, track your symptoms carefully, reduce stress, improve sleep, and maintain a balanced diet. Bring notes about your cycle length, symptoms, and any changes to your appointment."
+    },
+    monitor: {
+      cls: 'rec-monitor',
+      title: '🌿 Self-Monitor & Lifestyle Adjustments',
+      text: "Your cycle is slightly irregular or you're experiencing some symptoms, but nothing alarming. Focus on lifestyle improvements: better sleep, stress reduction, and balanced nutrition can go a long way. Track your cycle for 2–3 more months. If symptoms persist or worsen, book a check-up with your doctor. You don't need urgent care right now."
+    },
+    ok: {
+      cls: 'rec-ok',
+      title: '✨ You\'re Doing Great',
+      text: "Your cycle appears healthy based on the information provided. Continue your current habits — keep up the balanced diet, moderate exercise, and good sleep. Track your cycle monthly to spot any future changes early. A routine annual gynecologist check-up is always recommended for everyone."
+    }
+  };
+  const r = recs[severity];
+  document.getElementById('rec-box').innerHTML =
+    `<div class="recommendation-box ${r.cls}"><div class="rec-title">${r.title}</div><div class="rec-text">${r.text}</div></div>`;
+
+  // AI text
+  if (aiText) {
+    document.getElementById('ai-text').innerHTML = aiText.replace(/\n/g, '<br>');
+    document.getElementById('ai-block').style.display = 'block';
+  }
+
+  // Factors
+  document.getElementById('factors-list').innerHTML =
+    `<div class="section-title" style="margin-top:8px;">Factor Breakdown</div>` +
+    factors.map(f => `<div class="factor-item"><span class="factor-icon">${f.icon}</span><span>${f.text}</span></div>`).join('');
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function analyze() {
+  const age = parseInt(document.getElementById('age').value);
+  const bmi = parseFloat(document.getElementById('bmi').value);
+  const exercise = document.getElementById('exercise').value;
+  const diet = document.getElementById('diet').value;
+  const stress = parseInt(document.getElementById('stress').value);
+  const sleep = parseFloat(document.getElementById('sleep').value);
+  const cycleLen = parseInt(document.getElementById('cycleLen').value);
+  const periodLen = parseInt(document.getElementById('periodLen').value);
+  const symptoms = getCheckedSymptoms();
+
+  if (!age || !bmi || !exercise || !diet || !cycleLen || !periodLen) {
+    alert('Please fill in all fields before analyzing.');
+    return;
+  }
+
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  document.querySelector('.analyze-btn').disabled = true;
+
+  const data = { age, bmi, exercise, diet, stress, sleep, cycleLen, periodLen, symptoms };
+let prediction = 0;
+
+try {
+  const res = await fetch("/predict_luna", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      age,
+      bmi,
+      cycleLen,
+      periodLen,
+      stress,
+      sleep,
+      exercise
+    })
+  });
+
+  const json = await res.json();
+
+  if (json.status === "success") {
+  prediction = parseInt(json.prediction);
+} else {
+  document.getElementById('loading').style.display = 'none';
+  document.querySelector('.analyze-btn').disabled = false;
+
+  alert("API error: " + json.error);
+  return;
+}
+}
+catch (err) {
+  document.getElementById('loading').style.display = 'none';
+  document.querySelector('.analyze-btn').disabled = false;
+
+  alert("Backend not running!");
+  return;
+}
+let scoreMap = {
+  0: 90,
+  1: 60,
+  2: 30
+};
+
+let score = scoreMap[prediction] || 50;
+
+const severity = getSeverity(score, symptoms);
+
+// optional: keep empty factors since ML handles logic
+const factors = [];
+
+  let aiText = '';
+  try {
+    const severityLabel = { urgent: 'URGENT - needs immediate medical attention', caution: 'CAUTION - should see doctor soon', monitor: 'MONITOR - lifestyle changes recommended', ok: 'HEALTHY - generally good' }[severity];
+    const prompt = `You are Luna, a compassionate menstrual health advisor. A user has submitted their cycle data and the analysis shows: Health Score: ${score}/100, Severity: ${severityLabel}.
+
+User profile:
+- Age: ${age}, BMI: ${bmi}
+- Exercise: ${exercise}, Diet: ${diet}
+- Stress Level: ${stress}/5, Sleep: ${sleep} hours/night
+- Cycle Length: ${cycleLen} days, Period Length: ${periodLen} days
+- Symptoms: ${symptoms.length ? symptoms.join(', ') : 'None'}
+
+Write a warm, empathetic 3–4 paragraph personalized analysis. Cover:
+1. What their data suggests about their cycle health
+2. The most important contributing factors (positive and negative)
+3. Specific, actionable lifestyle recommendations tailored to their profile
+4. A clear, caring note about whether and how urgently they should see a doctor
+
+Be conversational, supportive, and specific. Do NOT use headers or bullet points — write in flowing paragraphs. Do NOT repeat the recommendation to see a doctor redundantly.`;
+
+    // Placeholder for AI response
+    aiText = `Hello! Based on your health score of ${score}/100, your cycle health is ${severityLabel.toLowerCase()}. ${prompt.split('\n')[1]}`;
+  } catch (e) {
+    aiText = '';
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.querySelector('.analyze-btn').disabled = false;
+  renderResult(data, score, factors, severity, aiText);
+}
+</script>
+</body>
+</html>

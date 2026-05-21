@@ -13,9 +13,11 @@ from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
 from datetime import datetime
+import joblib
+import numpy as np
 
 # Load environment variables from .env file (before any other imports that need them)
-load_dotenv()
+load_dotenv(override=True)
 
 from models import load_models, predict_image
 from utils import preprocess_image, detect_image_type, generate_agentic_report, chat_with_agent
@@ -50,6 +52,15 @@ except Exception as e:
 logger.info("Loading AI models...")
 models = load_models()
 logger.info("Models loaded successfully.")
+
+# --- LUNA MODEL SETUP ---
+LUNA_MODEL_PATH = "model.pkl"
+try:
+    luna_model = joblib.load(LUNA_MODEL_PATH)
+    logger.info("✅ Luna Cycle Health model loaded successfully.")
+except FileNotFoundError:
+    luna_model = None
+    logger.warning("⚠️ Luna model.pkl not found. Make sure it is in the root directory.")
 # ── Load Generative Engine (Stable Diffusion + LoRA) ──────────────────────────
 logger.info("Loading Generative Engine...")
 try:
@@ -159,16 +170,18 @@ def predict():
         )
 
         # ── Save to Database (MongoDB) ────────────────────────────────────────
+        record_id = None
         try:
             new_record = {
                 "patient_id": patient_id,
-                "date": datetime.utcnow(),
+                "date": datetime.now(),
                 "image_path": image_data,
                 "prediction": result['display_name'],
                 "confidence": round(result['confidence'] * 100, 2),
                 "risk_level": result['risk_level']
             }
-            patients_collection.insert_one(new_record)
+            insert_res = patients_collection.insert_one(new_record)
+            record_id = str(insert_res.inserted_id)
         except Exception as db_err:
             logger.error(f"Failed to save record to MongoDB: {db_err}")
 
@@ -178,6 +191,7 @@ def predict():
 
         return jsonify({
             'status':         'success',
+            'record_id':      record_id,
             'image_type':     image_type,
             'model_used':     'ViT (fine-tuned)',
             # Specific 7-class result
@@ -273,13 +287,27 @@ def chat():
 def get_history(patient_id):
     """Fetches chronological analysis history for a specific patient from MongoDB."""
     try:
+        query = {"patient_id": patient_id}
+        
+        # Exclude the current record if provided
+        exclude_id = request.args.get('exclude')
+        if exclude_id:
+            from bson.objectid import ObjectId
+            try:
+                query["_id"] = {"$ne": ObjectId(exclude_id)}
+            except Exception:
+                pass # Ignore invalid ObjectIds
+
         # Query MongoDB for the patient and sort by date ascending (1)
-        records = patients_collection.find({"patient_id": patient_id}).sort("date", 1)
+        records = patients_collection.find(query).sort("date", 1)
         
         history = []
         for r in records:
+            # Return as ISO format for the frontend
+            iso_date = r['date'].isoformat()
+                
             history.append({
-                'date': r['date'].strftime("%b %d, %Y - %H:%M"),
+                'date': iso_date,
                 'prediction': r['prediction'],
                 'confidence': r['confidence'],
                 'risk_level': r['risk_level']
@@ -297,6 +325,135 @@ def acoustic():
     return render_template('acoustic.html')
 
 
+@app.route('/acoustic/analyze', methods=['POST'])
+def acoustic_analyze():
+    """
+    Accept a recorded audio blob from the browser and pass it to a standalone
+    inference script running in the venv_acoustic environment. This avoids
+    TensorFlow/Keras dependency conflicts in the main Flask environment.
+    """
+    import tempfile, subprocess, json
+
+    if 'audio' not in request.files:
+        return jsonify({'error': 'No audio file provided'}), 400
+
+    audio_file = request.files['audio']
+
+    try:
+        suffix = '.webm'
+        content_type = audio_file.content_type or ''
+        if 'ogg' in content_type:
+            suffix = '.ogg'
+        elif 'wav' in content_type:
+            suffix = '.wav'
+        elif 'mp4' in content_type or 'mp4a' in content_type:
+            suffix = '.mp4'
+
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            audio_file.save(tmp.name)
+            tmp_path = tmp.name
+
+        # ── Shell out to the venv_acoustic Python environment ─────────────────
+        # Ensure we use the isolated environment that has tensorflow installed correctly
+        python_exe = os.path.join(os.path.dirname(__file__), 'venv_acoustic', 'Scripts', 'python.exe')
+        infer_script = os.path.join(os.path.dirname(__file__), 'acoustic', 'infer.py')
+        
+        if not os.path.exists(python_exe):
+            # Fallback for linux/mac if someone runs this elsewhere
+            python_exe = os.path.join(os.path.dirname(__file__), 'venv_acoustic', 'bin', 'python')
+
+        # Run inference and capture stdout (JSON string)
+        result = subprocess.run([python_exe, infer_script, tmp_path], 
+                                capture_output=True, text=True)
+        
+        # Clean up temp file
+        os.unlink(tmp_path)
+
+        if result.returncode != 0:
+            logger.error(f"Inference script failed: STDERR={result.stderr} STDOUT={result.stdout}")
+            return jsonify({'error': f'Inference failed (exit code {result.returncode}). See server logs for details.'}), 500
+            
+        # The script prints a JSON string to stdout
+        try:
+            # If the script prints any TF warnings, grab only the last line (the JSON)
+            lines = [line for line in result.stdout.strip().split('\n') if line.startswith('{')]
+            output_json = lines[-1] if lines else result.stdout.strip()
+            
+            parsed = json.loads(output_json)
+            
+            if 'error' in parsed:
+                return jsonify({'error': parsed['error']}), 500
+                
+            return jsonify(parsed)
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse inference output: {result.stdout}")
+            return jsonify({'error': f'Invalid output from inference: {e}'}), 500
+
+    except Exception as e:
+        logger.error(f"Acoustic analysis error: {e}", exc_info=True)
+        try:
+            if 'tmp_path' in locals() and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+        except Exception:
+            pass
+        return jsonify({'error': str(e)}), 500
+
+
+# ── LUNA ROUTES ───────────────────────────────────────────────────────────────
+@app.route('/luna')
+def luna_page():
+    # Renders the Luna application UI
+    return render_template('luna_app.html')
+
+@app.route('/luna_landing')
+def luna_landing_page():
+    # Renders the Luna landing page
+    return render_template('luna_landing.html')
+
+@app.route("/predict_luna", methods=["POST"])
+def predict_luna():
+    try:
+        if not request.is_json:
+            return jsonify({"error": "Request must be JSON"}), 400
+
+        data = request.get_json()
+        required_fields = ["age", "bmi", "cycleLen", "periodLen", "stress", "sleep", "exercise"]
+
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing field: {field}"}), 400
+
+        # Extract features
+        age = float(data["age"])
+        bmi = float(data["bmi"])
+        cycleLen = float(data["cycleLen"])
+        periodLen = float(data["periodLen"])
+        stress = float(data["stress"])
+        sleep = float(data["sleep"])
+
+        # Convert exercise string to numeric
+        exercise_map = {"Low": 1, "Moderate": 2, "High": 3}
+        exercise_val = exercise_map.get(data["exercise"], 2)
+
+        features = np.array([[age, bmi, stress, exercise_val, sleep, cycleLen, periodLen]])
+
+        if luna_model is None:
+            return jsonify({"error": "Luna model is not loaded on the server."}), 500
+
+        prediction = luna_model.predict(features)[0]
+
+        return jsonify({
+            "status": "success",
+            "prediction": int(prediction)
+        })
+
+    except Exception as e:
+        logger.error(f"Luna Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+

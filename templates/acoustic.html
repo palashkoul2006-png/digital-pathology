@@ -35,11 +35,11 @@
   <!-- Hero -->
   <div class="page-hero">
     <h1>Cough-to-Clinic Acoustic Virtual Stethoscope</h1>
-    <p>Google HeAR representation learning — identifies TB, Asthma, Pneumonia &amp; subclinical micro-patterns</p>
+    <p>Google HeAR &amp; MFCC CNN Ensemble — identifies TB, Asthma, Pneumonia &amp; subclinical micro-patterns</p>
     <div class="hero-badges">
       <span class="hero-badge privacy">☁️ Secure Cloud Processing</span>
       <span class="hero-badge local">⚡ Remote Backend Inference</span>
-      <span class="hero-badge edge">🧠 Google HeAR · PyTorch</span>
+      <span class="hero-badge edge">🧠 Ensemble HeAR + CNN</span>
     </div>
     <p id="model-status" style="margin-top:0.75rem;font-size:0.82rem;font-weight:500;">⏳ Connecting to inference server…</p>
   </div>
@@ -129,8 +129,8 @@
       <div id="loading-state" style="display:none;">
         <div class="loading-state visible">
           <div class="spinner-large"></div>
-          <p>Extracting HeAR embeddings…</p>
-          <small>Running Google HeAR → MLP inference on server</small>
+          <p>Extracting audio features…</p>
+          <small>Running Google HeAR &amp; MFCC ensemble inference on server</small>
         </div>
       </div>
 

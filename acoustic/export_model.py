@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 SAVED_DIR   = os.path.join(os.path.dirname(__file__), 'saved_model')
 TFLITE_PATH = os.path.join(SAVED_DIR, 'model.tflite')
+KERAS_CKPT  = os.path.join(SAVED_DIR, 'best_model.h5')
 TFJS_DIR    = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     'static', 'acoustic_model'
@@ -117,7 +118,7 @@ def main():
         sys.exit(1)
 
     # ── Load the trained model ─────────────────────────────────────────────
-    keras_checkpoint = os.path.join(SAVED_DIR, 'best_model.keras')
+    keras_checkpoint = os.path.join(SAVED_DIR, 'best_model.h5')
     if os.path.exists(keras_checkpoint):
         logger.info(f"Loading best checkpoint: {keras_checkpoint}")
         model = tf.keras.models.load_model(keras_checkpoint)
@@ -138,7 +139,7 @@ def main():
     verify_tflite(TFLITE_PATH)
 
     # ── Export TF.js ───────────────────────────────────────────────────────
-    source = keras_checkpoint if os.path.exists(keras_checkpoint) else SAVED_DIR
+    source = KERAS_CKPT if os.path.exists(KERAS_CKPT) else SAVED_DIR
     export_tfjs(source)
 
     logger.info("\n" + "=" * 60)

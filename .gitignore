@@ -39,6 +39,7 @@ skin_cancer_vit/
 # === Acoustic module — training data & model weights ===
 acoustic/data/
 acoustic/saved_model/
+coughvid_data/
 # Note: static/acoustic_model/ IS committed (TF.js web model is small & needed)
 
 # === Raw Dataset Images ===

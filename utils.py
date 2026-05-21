@@ -91,14 +91,7 @@ def detect_image_type(image_path: str) -> str:
 
 # ── Agentic AI Recommendation Engine (Gemini LLM) ─────────────────────────────
 
-# Initialize the NEW Gemini Client
-_api_key = os.environ.get("GEMINI_API_KEY")
-if not _api_key:
-    raise EnvironmentError(
-        "GEMINI_API_KEY environment variable is not set. "
-        "Create a .env file with GEMINI_API_KEY=your_key_here and restart."
-    )
-client = genai.Client(api_key=_api_key)
+# The Gemini client will be initialized inside the functions to ensure .env is fully loaded first
 def generate_agentic_report(
     prediction: str,
     confidence: float,
@@ -130,15 +123,27 @@ def generate_agentic_report(
     """
 
     try:
-        # Call the LLM
-        response = client.models.generate_content(model='gemini-2.5-flash', contents=system_prompt)
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("API Key missing")
+        client = genai.Client(api_key=api_key)
         
-        # Clean up the response to ensure it's pure JSON
-        response_text = response.text.replace("```json", "").replace("```", "").strip()
-        agent_report = json.loads(response_text)
+        # Call the LLM and enforce JSON response
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', 
+            contents=system_prompt,
+            config=genai.types.GenerateContentConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        agent_report = json.loads(response.text)
         
     except Exception as e:
-        logger.error(f"LLM Generation Failed: {e}")
+        logger.error(f"LLM Generation Failed. Error: {e}")
+        if hasattr(e, 'response'):
+            logger.error(f"LLM Response Text: {e.response.text}")
+        
         # Safe fallback if API fails
         agent_report = {
             "medical_advice": f"The AI detected {prediction} with {risk_level} risk. Please consult a dermatologist.",
@@ -181,6 +186,8 @@ def chat_with_agent(user_message: str, context_summary: str, chat_history: str) 
     Never provide a definitive medical diagnosis. Always recommend consulting a doctor.
     """
     try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        client = genai.Client(api_key=api_key)
         response = client.models.generate_content(model='gemini-2.5-flash', contents=system_prompt)
         return response.text.strip()
     except Exception as e:

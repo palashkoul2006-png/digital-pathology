@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cycle Matters - Menstrual Health Awareness</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-text h1 {
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            font-weight: 700;
+            color: #721c24;
+            margin-bottom: 24px;
+            line-height: 1.1;
+        }
+
+        .hero-text .highlight {
+            background: linear-gradient(45deg, #ff6b9d, #c44569);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-text p {
+            font-size: 1.3rem;
+            color: #721c24;
+            margin-bottom: 32px;
+            font-weight: 300;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 40px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 20px 40px rgba(255, 107, 157, 0.4);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 60px rgba(255, 107, 157, 0.6);
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .cta-button:hover::before {
+            left: 100%;
+        }
+
+        .hero-image {
+            position: relative;
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 107, 157, 0.1);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-circle:nth-child(1) { width: 120px; height: 120px; top: 10%; right: 20%; animation-delay: 0s; }
+        .floating-circle:nth-child(2) { width: 80px; height: 80px; top: 60%; left: 10%; animation-delay: 2s; }
+        .floating-circle:nth-child(3) { width: 60px; height: 60px; bottom: 20%; right: 40%; animation-delay: 4s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        /* Stats Section */
+        .stats {
+            padding: 100px 20px;
+            background: white;
+            position: relative;
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, #ff6b9d, #c44569);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .stat-item p {
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* Awareness Facts */
+        .facts {
+            padding: 100px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .facts-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .facts h2 {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .facts-subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 60px;
+            font-weight: 300;
+        }
+
+        .facts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .fact-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .fact-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255,255,255,0.2);
+        }
+
+        .fact-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .fact-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        /* Final CTA */
+        .final-cta {
+            padding: 100px 20px;
+            background: #721c24;
+            text-align: center;
+            color: white;
+        }
+
+        .final-cta h2 {
+            font-size: 2.8rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .final-cta p {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 40px;
+            }
+            
+            .hero-text h1 {
+                margin-bottom: 20px;
+            }
+            
+            .facts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Calculator Preview */
+        .calculator-preview {
+            max-width: 500px;
+            margin: 40px auto 0;
+            padding: 30px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .calculator-preview h3 {
+            color: #721c24;
+            margin-bottom: 15px;
+        }
+
+        .calculator-preview .cta-button {
+            font-size: 1rem;
+            padding: 15px 30px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="floating-elements">
+            <div class="floating-circle"></div>
+            <div class="floating-circle"></div>
+            <div class="floating-circle"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Your <span class="highlight">Cycle</span><br>Matters</h1>
+                <p>
+                    1 in 4 women experience irregular periods.<br>
+                    <strong>Your menstrual health is a window to your overall wellness.</strong>
+                </p>
+                <a href="#calculator" class="cta-button">
+                    <i class="fas fa-heart-pulse"></i>
+                    Check Your Cycle Health Now
+                </a>
+            </div>
+            <div class="hero-image">
+                <!-- SVG illustration or image would go here -->
+                <div style="font-size: 12rem; opacity: 0.1; position: absolute; top: 50%; right: 10%; transform: translateY(-50%);">
+                    🌸
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <h3>80%</h3>
+                <p>of reproductive health issues show early signs in menstrual patterns</p>
+            </div>
+            <div class="stat-item">
+                <h3>1 in 4</h3>
+                <p>women experience irregular cycles annually</p>
+            </div>
+            <div class="stat-item">
+                <h3>90%</h3>
+                <p>of PCOS cases have irregular periods as first symptom</p>
+            </div>
+            <div class="stat-item">
+                <h3>3M+</h3>
+                <p>women undiagnosed with thyroid issues affecting cycles</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Facts Section -->
+    <section class="facts">
+        <div class="facts-container">
+            <h2>Why Your Cycle Matters</h2>
+            <p class="facts-subtitle">Irregular periods aren't "normal" - they're signals</p>
+            <p>Regular menstrual cycle awareness is an essential part of maintaining overall health and well-being. Understanding the patterns, duration, and symptoms of your cycle helps you recognize what is normal for your body and quickly identify any unusual changes, such as irregular timing, excessive pain, or abnormal flow. Being aware also supports better reproductive health decisions, whether related to fertility, contraception, or managing conditions like hormonal imbalances. Beyond the physical aspects, it encourages a deeper connection with your body, promoting confidence and proactive healthcare habits. Tracking your cycle regularly can empower you to seek timely medical advice when needed and ensure that your body receives the attention and care it deserves.
+</p>
+            
+            <div class="facts-grid">
+                <div class="fact-card">
+                    <i class="fas fa-heartbeat fact-icon" style="color: #ff6b9d;"></i>
+                    <h3>Early Detection</h3>
+                    <p>Thyroid disorders, PCOS, and hormonal imbalances show up in your cycle 6-12 months before other symptoms</p>
+                </div>
+                <div class="fact-card">
+                    <i class="fas fa-brain fact-icon" style="color: #4ecdc4;"></i>
+                    <h3>Mental Health Link</h3>
+                    <p>80% of women with severe PMS have underlying nutrient deficiencies affecting both mood and cycles</p>
+                </div>
+                <div class="fact-card">
+                    <i class="fas fa-running fact-icon" style="color: #45b7d1;"></i>
+                    <h3>Fertility Window</h3>
+                    <p>Irregular cycles reduce conception chances by 40% - early tracking improves outcomes</p>
+                </div>
+            </div>
+        </div>
+        
+    </section>
+
+    <!-- Calculator Preview + Final CTA -->
+    <section class="final-cta" id="calculator">
+        <div class="container">
+            <h2>Ready to Know Your Cycle Score?</h2>
+            <p>Get your personalized 1-10 cycle health rating in 30 seconds</p>
+            
+            <div class="calculator-preview">
+                <h3><i class="fas fa-chart-line"></i> Cycle Health Rater</h3>
+                <p>Enter your last 3 cycles and get instant insights</p>
+                <a href="/luna" class="cta-button">
+                    <i class="fas fa-magic"></i>
+                    Start My Assessment
+                </a>
+                <p style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
+                    <i class="fas fa-info-circle"></i> Takes 30 seconds • 100% Private
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Animate stats on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe stat items and fact cards
+        document.querySelectorAll('.stat-item, .fact-card').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.6s ease';
+            observer.observe(el);
+        });
+
+        // CTA button pulse animation
+        setInterval(() => {
+            const cta = document.querySelector('.cta-button');
+            cta.style.transform = 'translateY(-2px) scale(1.02)';
+            setTimeout(() => {
+                cta.style.transform = 'translateY(0) scale(1)';
+            }, 300);
+        }, 4000);
+    </script>
+</body>
+</html>

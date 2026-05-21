@@ -15,11 +15,13 @@
 #   python acoustic/export_model.py
 # ─────────────────────────────────────────────────────────────────────────────
 
-numpy>=1.24.0
+numpy==1.24.3          # TF 2.13 hard cap; newer numpy breaks scipy
+scipy==1.10.1          # Must match numpy 1.24.3 (no numpy.exceptions)
 librosa>=0.10.0
 soundfile>=0.12.0
 tensorflow==2.13.0
-tensorflowjs==4.10.0
-importlib_resources>=5.9.0
-tf-keras
-tensorflow-hub
+tensorflow-hub>=0.13.0
+six
+packaging
+jinja2
+tensorflowjs==3.21.0   # Last version without tensorflow-decision-forests dep
